@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"io"
 	"sync"
+	"flag"
 )
 
 func copyBody(source io.ReadCloser) (dest1 io.ReadCloser, dest2 io.ReadCloser) {
@@ -17,7 +18,13 @@ func copyBody(source io.ReadCloser) (dest1 io.ReadCloser, dest2 io.ReadCloser) {
 	return
 }
 
+var port string
+
+
 func main() {
+	flag.StringVar(&port, "port", "3128", "Port to listen on")
+	flag.Parse()
+
 	cache := make(map[string]*http.Response, 1000)
 	cacheWriteLock := sync.Mutex{}
 	proxy := goproxy.NewProxyHttpServer()
@@ -53,5 +60,5 @@ func main() {
 	})
 
 	//proxy.Verbose = true
-	log.Fatalln(http.ListenAndServe(":8080", proxy))
+	log.Fatalln(http.ListenAndServe(":" + port, proxy))
 }
