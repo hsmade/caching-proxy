@@ -1,6 +1,4 @@
-language: go
-go:
-  - "1.11"
+language: minimal
 
 deploy:
   provider: script
