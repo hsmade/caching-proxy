@@ -43,7 +43,9 @@ func main() {
 			if ok {
 				ctx.Warnf("Returning cached data[%v] for %v", len(cache), r.URL.String())
 				responseCopy := *resp
+				cacheWriteLock.Lock()
 				responseCopy.Body, resp.Body = copyBody(resp.Body, ctx)
+				cacheWriteLock.Unlock()
 				return r, &responseCopy
 			}
 			return r, nil
@@ -66,8 +68,8 @@ func main() {
 		if !ok {
 			ctx.Warnf("Storing response in cache[%v] for %v", len(cache), ctx.Req.URL.String())
 			responseCopy := *resp
-			responseCopy.Body, resp.Body = copyBody(resp.Body, ctx)
 			cacheWriteLock.Lock()
+			responseCopy.Body, resp.Body = copyBody(resp.Body, ctx)
 			cache[ctx.Req.URL.String()] = &responseCopy
 			cacheWriteLock.Unlock()
 		}
