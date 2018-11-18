@@ -1,6 +1,6 @@
 VERSION := $(shell git rev-parse HEAD)
 
-all: build upload
+all: build
 
 build:
 	docker build -t hsmade/caching-proxy:$(VERSION) .
