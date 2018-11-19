@@ -11,6 +11,7 @@ import (
 	"sync"
 	"crypto/md5"
 	"encoding/hex"
+	"time"
 )
 
 func copyBody(source io.ReadCloser, ctx *goproxy.ProxyCtx) (dest1 io.ReadCloser, dest2 io.ReadCloser) {
@@ -26,6 +27,7 @@ func copyBody(source io.ReadCloser, ctx *goproxy.ProxyCtx) (dest1 io.ReadCloser,
 var (
 	port    string
 	verbose bool
+	maxRretries int
 )
 
 func generateHash(r *http.Request) string {
@@ -36,6 +38,7 @@ func generateHash(r *http.Request) string {
 func main() {
 	flag.StringVar(&port, "port", "3128", "Port to listen on")
 	flag.BoolVar(&verbose, "verbose", false, "Verbose logging on")
+	flag.IntVar(&maxRretries, "max-retries", 30, "Max retries per call when a 500 is received")
 	flag.Parse()
 
 	cache := make(map[string]*http.Response, 1000)
@@ -61,12 +64,17 @@ func main() {
 
 	proxy.OnResponse().DoFunc(func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		hash := generateHash(ctx.Req)
-		if ctx.Error != nil {
-			ctx.Warnf("RETRYING because of %v", ctx.Error)
-			resp, _ = http.DefaultClient.Do(ctx.Req) // retry
-		} else if resp.StatusCode >= 500 {
-			ctx.Warnf("RETRYING because of status code: %v", resp.StatusCode)
-			resp, _ = http.DefaultClient.Do(ctx.Req) // retry
+		if resp.StatusCode >= 500 {
+			retries := 1
+			for {
+				ctx.Warnf("%v gave 500, RETRY: %v", ctx.Req.URL.String(), retries)
+				time.Sleep(time.Second * 1)
+				resp, _ = http.DefaultClient.Do(ctx.Req) // retry
+				if resp.StatusCode != 500 {
+					break
+				}
+				retries ++
+			}
 		}
 
 		if resp.StatusCode >= 500 || ctx.Error != nil {
