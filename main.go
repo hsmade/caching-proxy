@@ -28,6 +28,7 @@ var (
 	port    string
 	verbose bool
 	maxRretries int
+	retrySleep time.Duration
 )
 
 func generateHash(r *http.Request) string {
@@ -39,6 +40,7 @@ func main() {
 	flag.StringVar(&port, "port", "3128", "Port to listen on")
 	flag.BoolVar(&verbose, "verbose", false, "Verbose logging on")
 	flag.IntVar(&maxRretries, "max-retries", 30, "Max retries per call when a 500 is received")
+	flag.DurationVar(&retrySleep, "retry-sleep", 1 * time.Second, "Time to sleep in between retries")
 	flag.Parse()
 
 	cache := make(map[string]*http.Response, 1000)
